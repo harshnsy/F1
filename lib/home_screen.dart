@@ -1,6 +1,9 @@
-import 'package:flutter/material.dart';
-import 'dart:html' as html;
 
+import 'package:flutter/material.dart';
+import 'expense_tab.dart';
+import 'team_tab.dart';
+import 'company_profile_tab.dart';
+import 'dart:html' as html;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -50,89 +53,142 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          // Header
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E40AF),
-                    borderRadius: BorderRadius.circular(8),
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final List<Widget> tabViews = const [
+      ExpenseTab(),
+      TeamTab(),
+      CompanyProfileTab(),
+    ];
+    final List<String> tabLabels = [
+      'My Expenses',
+      'Team Management',
+      'Company Profile',
+    ];
+    final List<IconData> tabIcons = [
+      Icons.receipt,
+      Icons.people,
+      Icons.business,
+    ];
+
+    if (isMobile) {
+      return Scaffold(
+        body: tabViews[_selectedTab],
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _selectedTab,
+          onTap: (index) => setState(() => _selectedTab = index),
+          items: [
+            for (int i = 0; i < tabLabels.length; i++)
+              BottomNavigationBarItem(
+                icon: Icon(tabIcons[i]),
+                label: tabLabels[i],
+              ),
+          ],
+        ),
+        floatingActionButton: _selectedTab == 0
+            ? FloatingActionButton.extended(
+                onPressed: _showSubmitExpenseDialog,
+                backgroundColor: const Color(0xFF1E40AF),
+                icon: const Icon(Icons.add),
+                label: const Text('Submit Expense'),
+              )
+            : null,
+      );
+    } else {
+      return Scaffold(
+        body: Column(
+          children: [
+            // Header
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E40AF),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.receipt_long, color: Colors.white, size: 24),
                   ),
-                  child: const Icon(Icons.receipt_long, color: Colors.white, size: 24),
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'ExpenseFlow',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        'ExpenseFlow',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    Text(
-                      'IUGU KHBJN · admin',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
+                      Text(
+                        'IUGU KHBJN · admin',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
                       ),
-                    ),
+                    ],
+                  ),
+                  const Spacer(),
+                  // Profile section for desktop
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: Colors.blue[100],
+                        child: const Icon(Icons.person, color: Colors.blue),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('Profile'),
+                      const SizedBox(width: 16),
+                      OutlinedButton.icon(
+                        onPressed: _handleLogout,
+                        icon: const Icon(Icons.logout),
+                        label: const Text('Logout'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          side: const BorderSide(color: Colors.red),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            // Tab Navigation
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Row(
+                children: [
+                  for (int i = 0; i < tabLabels.length; i++) ...[
+                    _buildTabButton(i, tabIcons[i], tabLabels[i]),
+                    if (i < tabLabels.length - 1) const SizedBox(width: 16),
                   ],
-                ),
-                const Spacer(),
-                OutlinedButton.icon(
-                  onPressed: _handleLogout,
-                  icon: const Icon(Icons.logout),
-                  label: const Text('Logout'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red,
-                    side: const BorderSide(color: Colors.red),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const Divider(height: 1),
-          
-          // Tab Navigation
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-            child: Row(
-              children: [
-                _buildTabButton(0, Icons.receipt, 'My Expenses'),
-                const SizedBox(width: 16),
-                _buildTabButton(1, Icons.people, 'Team Management'),
-              ],
+            // Content
+            Expanded(
+              child: tabViews[_selectedTab],
             ),
-          ),
-          
-          // Content
-          Expanded(
-            child: _selectedTab == 0 
-                ? const MyExpensesTab() 
-                : const TeamManagementTab(),
-          ),
-        ],
-      ),
-      floatingActionButton: _selectedTab == 0
-          ? FloatingActionButton.extended(
-              onPressed: _showSubmitExpenseDialog,
-              backgroundColor: const Color(0xFF1E40AF),
-              icon: const Icon(Icons.add),
-              label: const Text('Submit Expense'),
-            )
-          : null,
-    );
+          ],
+        ),
+        floatingActionButton: _selectedTab == 0
+            ? FloatingActionButton.extended(
+                onPressed: _showSubmitExpenseDialog,
+                backgroundColor: const Color(0xFF1E40AF),
+                icon: const Icon(Icons.add),
+                label: const Text('Submit Expense'),
+              )
+            : null,
+      );
+    }
   }
+
+  // ...existing code...
 
   Widget _buildTabButton(int index, IconData icon, String label) {
     final isSelected = _selectedTab == index;
@@ -169,6 +225,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
 
 class MyExpensesTab extends StatelessWidget {
   const MyExpensesTab({Key? key}) : super(key: key);
