@@ -91,5 +91,5 @@ Parallel (Unchecked): All approvers are notified simultaneously.
 
 Quorum Setting: For parallel workflows, the Minimum Approval Percentage dictates the required threshold of approvals for the claim to pass.
 
-
+The project look like :- https://www.figma.com/design/TayTw1nx3xLXHUUIwnlFZF/Untitled?node-id=0-1&t=o5zu335Maah0i2VN-1
 
