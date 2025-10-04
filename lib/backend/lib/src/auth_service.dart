@@ -2,8 +2,11 @@ import 'dart:convert';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 import 'package:crypto/crypto.dart';
+import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart'; 
 import 'db.dart';
 
+
+const _jwtSecret = 'your-very-secret-key';
 /// Fetches company by name; creates it if it doesn't exist
 Future<int> getOrCreateCompany(String name,
     {String country = 'Unknown', String currencyCode = 'USD'}) async {
@@ -104,45 +107,56 @@ class AuthService {
   }
 
   static Future<Response> login(Request req) async {
-    try {
-      final body = await req.readAsString();
-      final data = jsonDecode(body);
+  try {
+    final body = await req.readAsString();
+    final data = jsonDecode(body);
 
-      final email = data['email'];
-      final password = data['password'];
+    final email = data['email'];
+    final password = data['password'];
 
-      if (email == null || password == null) {
-        return Response.badRequest(
-            body: jsonEncode({'error': 'Missing email or password'}),
-            headers: {'Content-Type': 'application/json'});
-      }
-
-      final hashed = sha256.convert(utf8.encode(password)).toString();
-
-      final res = await DB.conn.query(
-          'SELECT user_id, email, role FROM users WHERE email=@e AND password_hash=@p',
-          substitutionValues: {'e': email, 'p': hashed});
-
-      if (res.isEmpty) {
-        return Response.forbidden(
-            jsonEncode({'error': 'Invalid credentials'}),
-            headers: {'Content-Type': 'application/json'});
-      }
-
-      final user = res.first.toColumnMap();
-
-      return Response.ok(
-          jsonEncode({
-            'message': 'Login successful',
-            'user': {'id': user['user_id'], 'email': user['email'], 'role': user['role']}
-          }),
-          headers: {'Content-Type': 'application/json'});
-    } catch (e) {
-      return Response.internalServerError(
-          body: jsonEncode({'error': 'Login failed', 'details': e.toString()}),
+    if (email == null || password == null) {
+      return Response.badRequest(
+          body: jsonEncode({'error': 'Missing email or password'}),
           headers: {'Content-Type': 'application/json'});
     }
+
+    final hashed = sha256.convert(utf8.encode(password)).toString();
+
+    final res = await DB.conn.query(
+        'SELECT user_id, email, role FROM users WHERE email=@e AND password_hash=@p',
+        substitutionValues: {'e': email, 'p': hashed});
+
+    if (res.isEmpty) {
+      return Response.forbidden(
+          jsonEncode({'error': 'Invalid credentials'}),
+          headers: {'Content-Type': 'application/json'});
+    }
+
+    final user = res.first.toColumnMap();
+
+    // Create JWT
+    final jwt = JWT({
+      'user_id': user['user_id'],
+      'email': user['email'],
+      'role': user['role'],
+    });
+
+    final token = jwt.sign(SecretKey(_jwtSecret), expiresIn: const Duration(days: 7));
+
+    return Response.ok(
+        jsonEncode({
+          'message': 'Login successful',
+          'token': token,
+          'user': {'id': user['user_id'], 'email': user['email'], 'role': user['role']}
+        }),
+        headers: {'Content-Type': 'application/json'});
+  } catch (e) {
+    return Response.internalServerError(
+        body: jsonEncode({'error': 'Login failed', 'details': e.toString()}),
+        headers: {'Content-Type': 'application/json'});
   }
+}
+// ...existing code...
 }
 
 Router buildRouter() {

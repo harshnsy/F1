@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 
 class TeamTab extends StatefulWidget {
-  const TeamTab({Key? key}) : super(key: key);
+  final Map<String, dynamic>? user;
+  final String? jwtToken;
+
+  const TeamTab({Key? key, required this.user, required this.jwtToken}) : super(key: key);
 
   @override
   State<TeamTab> createState() => _TeamTabState();
@@ -16,11 +19,11 @@ class _TeamTabState extends State<TeamTab> {
 
   void _addEmployeeDialog() {
     final _formKey = GlobalKey<FormState>();
-    String name = '';
-    String age = '';
-    String dob = '';
-    String email = '';
-    String password = _generatePassword();
+    final _nameController = TextEditingController();
+    final _ageController = TextEditingController();
+    final _dobController = TextEditingController();
+    final _emailController = TextEditingController();
+    final _passwordController = TextEditingController(text: _generatePassword());
 
     showDialog(
       context: context,
@@ -34,32 +37,36 @@ class _TeamTabState extends State<TeamTab> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextFormField(
+                    controller: _nameController,
                     decoration: const InputDecoration(labelText: 'Name'),
                     validator: (value) => value == null || value.isEmpty ? 'Enter name' : null,
-                    onChanged: (v) => name = v,
                   ),
+                  const SizedBox(height: 12),
                   TextFormField(
+                    controller: _ageController,
                     decoration: const InputDecoration(labelText: 'Age'),
                     keyboardType: TextInputType.number,
                     validator: (value) => value == null || value.isEmpty ? 'Enter age' : null,
-                    onChanged: (v) => age = v,
                   ),
+                  const SizedBox(height: 12),
                   TextFormField(
+                    controller: _dobController,
                     decoration: const InputDecoration(labelText: 'DOB (YYYY-MM-DD)'),
                     validator: (value) => value == null || value.isEmpty ? 'Enter DOB' : null,
-                    onChanged: (v) => dob = v,
                   ),
+                  const SizedBox(height: 12),
                   TextFormField(
+                    controller: _emailController,
                     decoration: const InputDecoration(labelText: 'Email'),
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) => value == null || !value.contains('@') ? 'Enter valid email' : null,
-                    onChanged: (v) => email = v,
                   ),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
                         child: TextFormField(
-                          initialValue: password,
+                          controller: _passwordController,
                           decoration: const InputDecoration(labelText: 'Password'),
                           readOnly: true,
                         ),
@@ -68,8 +75,7 @@ class _TeamTabState extends State<TeamTab> {
                         icon: const Icon(Icons.refresh),
                         tooltip: 'Regenerate Password',
                         onPressed: () {
-                          password = _generatePassword();
-                          setState(() {});
+                          _passwordController.text = _generatePassword();
                         },
                       ),
                     ],
@@ -88,11 +94,11 @@ class _TeamTabState extends State<TeamTab> {
                 if (_formKey.currentState!.validate()) {
                   setState(() {
                     teamMembers.add({
-                      'name': name,
-                      'age': age,
-                      'dob': dob,
-                      'email': email,
-                      'password': password,
+                      'name': _nameController.text,
+                      'age': _ageController.text,
+                      'dob': _dobController.text,
+                      'email': _emailController.text,
+                      'password': _passwordController.text,
                     });
                   });
                   Navigator.pop(context);
@@ -110,7 +116,6 @@ class _TeamTabState extends State<TeamTab> {
     const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     return List.generate(10, (index) => chars[_random.nextInt(chars.length)]).join();
   }
-
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(

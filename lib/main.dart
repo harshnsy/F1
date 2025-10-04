@@ -1,14 +1,9 @@
-
-
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
 import 'signup_screen.dart';
 import 'home_screen.dart';
-
-void main() {
-  runApp(const MyApp());
-}
-
+import 'dart:html' as html;
+import 'dart:convert';
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -20,16 +15,45 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   bool showLogin = true;
   bool isAuthenticated = false;
-
-  void _onLogin(String email, String password) {
+  String? jwtToken;
+  Map<String, dynamic>? user;
+  @override
+  void initState() {
+    super.initState();
+    // Restore session from localStorage
+    final storedToken = html.window.localStorage['jwt_token'];
+    if (storedToken != null) {
+      final parts = storedToken.split('.');
+      if (parts.length == 3) {
+        try {
+          final payload = json.decode(utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))));
+          setState(() {
+            isAuthenticated = true;
+            jwtToken = storedToken;
+            user = {
+              'email': payload['email'],
+              'role': payload['role'],
+              'user_id': payload['user_id'],
+            };
+          });
+        } catch (_) {
+          html.window.localStorage.remove('jwt_token');
+        }
+      }
+    }
+  }
+  void _onLogin(String token, Map<String, dynamic> userData) {
     setState(() {
       isAuthenticated = true;
+      jwtToken = token;
+      user = userData;
     });
   }
 
   void _onSignup(String firstName, String lastName, String companyName, String currency, String email, String password) {
+    // After signup, show login screen
     setState(() {
-      isAuthenticated = true;
+      showLogin = true;
     });
   }
 
@@ -45,6 +69,15 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
+  void _logout() {
+    setState(() {
+      isAuthenticated = false;
+      jwtToken = null;
+      user = null;
+      showLogin = true;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -53,7 +86,10 @@ class _MyAppState extends State<MyApp> {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
       home: isAuthenticated
-          ? const HomeScreen()
+          ? HomeScreen(
+              user: user,
+              onLogout: _logout,
+            )
           : showLogin
               ? LoginScreen(onSignupTap: _showSignup, onLogin: _onLogin)
               : SignupScreen(onLoginTap: _showLogin, onSignup: _onSignup),
@@ -61,5 +97,6 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
-
-
+void main() {
+  runApp(const MyApp());
+}

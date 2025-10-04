@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 class SignupScreen extends StatefulWidget {
   final VoidCallback onLoginTap;
   // Updated onSignup to accept all the new fields
@@ -40,20 +41,49 @@ class _SignupScreenState extends State<SignupScreen> {
     super.dispose();
   }
 
-  void _handleSignup() {
-    // Check if all form validation rules pass
-    if (_formKey.currentState!.validate()) {
-      // If valid, call the onSignup callback with the data from the controllers
-      widget.onSignup(
-        _firstNameController.text,
-        _lastNameController.text,
-        _companyNameController.text,
-        _selectedCurrency!,
-        _emailController.text,
-        _passwordController.text,
+
+
+// ...existing code...
+void _handleSignup() async {
+  if (_formKey.currentState!.validate()) {
+    final payload = {
+      'firstName': _firstNameController.text,
+      'lastName': _lastNameController.text,
+      'companyName': _companyNameController.text,
+      'currency': _selectedCurrency,
+      'email': _emailController.text,
+      'password': _passwordController.text,
+    };
+
+    try {
+      final response = await http.post(
+        Uri.parse('http://localhost:8080/signup'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(payload),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['message'] ?? 'Signup successful')),
+        );
+        // Redirect to login after signup
+        widget.onLoginTap();
+      } else {
+        final data = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['error'] ?? 'Signup failed')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
       );
     }
   }
+}
+// ...existing code...
+
 
   @override
   Widget build(BuildContext context) {

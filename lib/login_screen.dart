@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:html' as html; // For web localStorage
 
 class LoginScreen extends StatelessWidget {
   final VoidCallback onSignupTap;
-  final void Function(String, String) onLogin;
+  final void Function(String token, Map<String, dynamic> user) onLogin;
 
   const LoginScreen({super.key, required this.onSignupTap, required this.onLogin});
 
@@ -11,6 +14,37 @@ class LoginScreen extends StatelessWidget {
     final _formKey = GlobalKey<FormState>();
     String email = '';
     String password = '';
+
+    Future<void> _handleLogin() async {
+      if (_formKey.currentState!.validate()) {
+        try {
+          final response = await http.post(
+            Uri.parse('http://localhost:8080/login'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email, 'password': password}),
+          );
+          final data = jsonDecode(response.body);
+
+          if (response.statusCode == 200 && data['token'] != null) {
+            // Store JWT in localStorage for session persistence
+            html.window.localStorage['jwt_token'] = data['token'];
+            onLogin(data['token'], data['user']);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(data['message'] ?? 'Login successful')),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(data['error'] ?? 'Login failed')),
+            );
+          }
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')),
+          );
+        }
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Login')),
       body: Center(
@@ -36,11 +70,7 @@ class LoginScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      onLogin(email, password);
-                    }
-                  },
+                  onPressed: _handleLogin,
                   child: const Text('Login'),
                 ),
                 TextButton(
